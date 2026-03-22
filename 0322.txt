@@ -1,0 +1,176 @@
+apiVersion: app.claw.cloud/v1
+kind: Template
+metadata:
+  name: openlist
+spec:
+  title: "OpenList"
+  type: official
+  author: ClawCloud Run
+  author_id: 180503656
+  date: 2025-07-25
+  url: "https://github.com/OpenListTeam/OpenList"
+  gitRepo: "https://github.com/OpenListTeam/OpenList"
+  description: "A file list/WebDAV program that supports multiple storages, powered by Gin and Solidjs."
+  readme: "https://raw.githubusercontent.com/ClawCloud/Run-Template/refs/heads/main/template/openlist/README.md"
+  icon: "https://raw.githubusercontent.com/OpenListTeam/Logo/main/logo.svg"
+  templateType: inline
+  locale: en
+  categories:
+    - tool
+    - Free-Plan-Compatible
+  defaults:
+    app_host:
+      type: string
+      value: ${{ random(8) }}
+    app_name:
+      type: string
+      value: openlist-${{ random(8) }}
+  inputs:
+    USERNAME:
+      description: "Default Username"
+      type: choice
+      options:
+        - admin
+      default: admin
+      required: true
+    PASSWORD:
+      description: "Default Password"
+      type: string
+      default: ""
+      required: true
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ${{ defaults.app_name }}
+  annotations:
+    originImageName: openlistteam/openlist:latest-lite
+    deploy.run.claw.cloud/minReplicas: "1"
+    deploy.run.claw.cloud/maxReplicas: "1"
+  labels:
+    run.claw.cloud/app-deploy-manager: ${{ defaults.app_name }}
+    app: ${{ defaults.app_name }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  minReadySeconds: 10
+  serviceName: ${{ defaults.app_name }}
+  selector:
+    matchLabels:
+      app: ${{ defaults.app_name }}
+  template:
+    metadata:
+      labels:
+        app: ${{ defaults.app_name }}
+    spec:
+      terminationGracePeriodSeconds: 10
+      automountServiceAccountToken: false
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.36
+          command: ['sh', '-c', 'chown -R 1001:1001 /opt/openlist/data && chmod -R 777 /opt/openlist/data']
+          volumeMounts:
+            - name: vn-data
+              mountPath: /opt/openlist/data
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+      containers:
+        - name: ${{ defaults.app_name }}
+          image: openlistteam/openlist:latest-lite
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+            - name: UMASK
+              value: "022"
+            - name: OPENLIST_ADMIN_PASSWORD
+              value: ${{ inputs.PASSWORD }}
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 640Mi
+          command: []
+          args: []
+          ports:
+            - containerPort: 5244
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: vn-data
+              mountPath: /opt/openlist/data
+      volumes: []
+  volumeClaimTemplates:
+    - metadata:
+        annotations:
+          path: /opt/openlist/data
+          value: "1"
+        name: vn-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${{ defaults.app_name }}
+  labels:
+    run.claw.cloud/app-deploy-manager: ${{ defaults.app_name }}
+spec:
+  ports:
+    - port: 5244
+  selector:
+    app: ${{ defaults.app_name }}
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${{ defaults.app_name }}
+  labels:
+    run.claw.cloud/app-deploy-manager: ${{ defaults.app_name }}
+    run.claw.cloud/app-deploy-manager-domain: ${{ defaults.app_host }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: 512m
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: HTTP
+spec:
+  rules:
+    - host: ${{ defaults.app_host }}.${{ CLAWCLOUD_CLOUD_DOMAIN }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: ${{ defaults.app_name }}
+                port:
+                  number: 5244
+  tls:
+    - hosts:
+        - ${{ defaults.app_host }}.${{ CLAWCLOUD_CLOUD_DOMAIN }}
+      secretName: ${{ CLAWCLOUD_CERT_SECRET_NAME }}
+
+---
+apiVersion: app.claw.cloud/v1
+kind: App
+metadata:
+  name: ${{ defaults.app_name }}
+  labels:
+    run.claw.cloud/app-deploy-manager: ${{ defaults.app_name }}
+spec:
+  data:
+    url: https://${{ defaults.app_host }}.${{ CLAWCLOUD_CLOUD_DOMAIN }}
+  displayType: normal
+  icon: "https://raw.githubusercontent.com/OpenListTeam/Logo/main/logo.svg"
+  name: OpenList
+  type: link
