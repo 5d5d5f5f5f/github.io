@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>声明公告</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+
+body{
+min-height:100vh;
+background:radial-gradient(circle at center,#1b2a4e,#05070d);
+display:flex;
+justify-content:center;
+align-items:center;
+color:#e8f1ff;
+padding:20px;
+text-align:center;
+}
+
+.box{
+background:rgba(10,20,40,0.9);
+border:2px solid rgba(0,150,255,0.5);
+box-shadow:0 0 50px rgba(0,150,255,0.6);
+border-radius:20px;
+padding:80px 60px;
+max-width:1000px;
+width:95%;
+animation:pulse 1.5s infinite;
+line-height:2.2;
+}
+
+.subscribe{
+font-size:72px;
+font-weight:bold;
+
+background:linear-gradient(
+90deg,
+violet,
+cyan,
+lime,
+yellow,
+orange,
+red
+);
+
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+
+background-size:400%;
+animation:rainbow 6s linear infinite;
+}
+
+@keyframes rainbow{
+0%{background-position:0%}
+100%{background-position:400%}
+}
+
+@keyframes pulse{
+0%{box-shadow:0 0 35px rgba(0,150,255,0.5)}
+50%{box-shadow:0 0 60px rgba(0,150,255,0.8)}
+100%{box-shadow:0 0 35px rgba(0,150,255,0.5)}
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<div class="subscribe">
+欢迎关注订阅<br>
+公众号 潇雨萌萌
+</div>
+
+</div>
+
+</body>
+</html>
